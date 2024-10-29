@@ -1,5 +1,5 @@
 "use strict";
-const faker = require("@faker-js/faker"); // Pastikan ini adalah import yang benar
+const { faker } = require("@faker-js/faker"); // Pastikan ini adalah import yang benar
 
 /** @type {import('sequelize-cli').Migration} */
 module.exports = {
@@ -7,20 +7,23 @@ module.exports = {
     const cars = [];
 
     for (let i = 0; i < 10; i++) {
-        const vehicle = faker.vehicle.vehicle(); // Menghasilkan informasi kendaraan
-        cars.push({
-          brand: vehicle.split(" ")[0], // Mengambil kata pertama sebagai merek
-          model: vehicle.split(" ").slice(1).join(" "), // Mengambil sisanya sebagai model
-          color: faker.color.human(), // Menggunakan warna dari faker.color.human()
-          createdAt: new Date(),
-          updatedAt: new Date(),
-        });
-      }
+      const brand = faker.vehicle.manufacturer(); // Menghasilkan nama merek kendaraan
+      const model = faker.vehicle.model(); // Menghasilkan model kendaraan
+      const color = faker.vehicle.color(); // Menghasilkan warna kendaraan
 
-    await queryInterface.bulkInsert("Cars", cars, {});
+      cars.push({
+        brand: brand,
+        model: model,
+        color: color,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      });
+    }
+
+    await queryInterface.bulkInsert("cars", cars, {});
   },
 
   async down(queryInterface, Sequelize) {
-    await queryInterface.bulkDelete("Cars", null, {});
+    await queryInterface.bulkDelete("cars", null, {});
   },
 };
