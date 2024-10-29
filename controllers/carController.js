@@ -55,7 +55,7 @@ const getAllCar = async (req, res) => {
       color,
       page = 1,
       limit = 10,
-      sortBy = "brand",
+      sortBy = "id",
       order = "ASC",
     } = req.query;
 
