@@ -20,10 +20,10 @@ module.exports = {
       });
     }
 
-    await queryInterface.bulkInsert("cars", cars, {});
+    await queryInterface.bulkInsert("Cars", cars, {});
   },
 
   async down(queryInterface, Sequelize) {
-    await queryInterface.bulkDelete("cars", null, {});
+    await queryInterface.bulkDelete("Cars", null, {});
   },
 };
