@@ -3,12 +3,14 @@ const { Op } = require("sequelize");
 
 const createCar = async (req, res) => {
   const { brand, model, color } = req.body;
+  const user = req.user;
 
   try {
     const newCar = await Cars.create({
       brand,
       model,
       color,
+      createdBy: user.id,
     });
 
     res.status(201).json({
@@ -20,7 +22,6 @@ const createCar = async (req, res) => {
       },
     });
   } catch (error) {
-    console.log(error.name);
     if (error.name === "SequelizeValidationError") {
       const errorMessage = error.errors.map((err) => err.message);
       return res.status(400).json({
@@ -39,7 +40,7 @@ const createCar = async (req, res) => {
     } else {
       return res.status(500).json({
         status: "Failed",
-        message: "An unexpected error occurred",
+        message: error.message || "Internal server error",
         isSuccess: false,
         data: null,
       });
@@ -62,9 +63,9 @@ const getAllCar = async (req, res) => {
     const carCondition = {};
     if (brand) carCondition.brand = { [Op.iLike]: `%${brand}%` };
     if (model) carCondition.model = { [Op.iLike]: `%${model}%` };
+    if (color) carCondition.color = { [Op.iLike]: `%${color}%` };
 
     const offset = (page - 1) * limit;
-    // const cars = await Cars.findAll();
     const cars = await Cars.findAndCountAll({
       where: carCondition,
       limit: parseInt(limit),
@@ -116,12 +117,6 @@ const getCarById = async (req, res) => {
       where: {
         id,
       },
-      // include: [
-      //   {
-      //     model: Shops,
-      //     as: "shop",
-      //   },
-      // ],
     });
 
     res.status(200).json({
