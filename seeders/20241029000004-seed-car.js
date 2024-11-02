@@ -1,5 +1,5 @@
 "use strict";
-const { faker } = require("@faker-js/faker"); // Pastikan ini adalah import yang benar
+const { faker } = require("@faker-js/faker");
 
 /** @type {import('sequelize-cli').Migration} */
 module.exports = {
@@ -7,9 +7,9 @@ module.exports = {
     const cars = [];
 
     for (let i = 0; i < 10; i++) {
-      const brand = faker.vehicle.manufacturer(); // Menghasilkan nama merek kendaraan
-      const model = faker.vehicle.model(); // Menghasilkan model kendaraan
-      const color = faker.vehicle.color(); // Menghasilkan warna kendaraan
+      const brand = faker.vehicle.manufacturer(); 
+      const model = faker.vehicle.model(); 
+      const color = faker.vehicle.color(); 
 
       cars.push({
         brand: brand,
