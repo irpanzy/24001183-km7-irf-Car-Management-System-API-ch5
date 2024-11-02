@@ -7,7 +7,7 @@ module.exports = {
   async up(queryInterface, Sequelize) {
     const superAdminUser = {
       name: faker.name.fullName(),
-      age: 20,
+      age: 25,
       address: faker.location.streetAddress(),
       role: "superadmin",
       createdAt: new Date(),
@@ -21,8 +21,8 @@ module.exports = {
     );
     const superAdminUserId = userResult[0].id;
 
-    const password = "superadmin";
-    const hashedPassword = await bcrypt.hash(password, 10);
+    const password = "superadmin123";
+    const hashedPassword = await bcrypt.hash(password, 13);
 
     const superAdminAuth = {
       email: "superadmin@example.com",
