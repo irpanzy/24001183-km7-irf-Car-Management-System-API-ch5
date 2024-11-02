@@ -4,19 +4,54 @@ const {
 } = require('sequelize');
 module.exports = (sequelize, DataTypes) => {
   class Cars extends Model {
-    /**
-     * Helper method for defining associations.
-     * This method is not a part of Sequelize lifecycle.
-     * The `models/index` file will call this method automatically.
-     */
     static associate(models) {
-      // define association here
+      Cars.belongsTo(models.Users, { foreignKey: "createdBy", as: "creator" });
+      Cars.belongsTo(models.Users, { foreignKey: "updatedBy", as: "updater" });
+      Cars.belongsTo(models.Users, { foreignKey: "deletedBy", as: "deleter" });
     }
   }
   Cars.init({
-    brand: DataTypes.STRING,
-    model: DataTypes.STRING,
-    color: DataTypes.STRING
+    brand: {
+      type: DataTypes.STRING,
+      allowNull: false,
+    },
+    model: {
+      type: DataTypes.STRING,
+      allowNull: false,
+    },
+    color: {
+      type: DataTypes.STRING,
+      allowNull: false,
+    },
+    createdBy: {
+      type: DataTypes.INTEGER,
+      allowNull: false,
+      references: {
+        model: "Users",
+        key: "id",
+      },
+      onUpdate: "CASCADE",
+      onDelete: "SET NULL",
+    },
+    updatedBy: {
+      type: DataTypes.INTEGER,
+      references: {
+        model: "Users",
+        key: "id",
+      },
+      onUpdate: "CASCADE",
+      onDelete: "SET NULL",
+    },
+    deletedBy: {
+      type: DataTypes.INTEGER,
+      references: {
+        model: "Users",
+        key: "id",
+      },
+      onUpdate: "CASCADE",
+      onDelete: "SET NULL",
+    },
+    deletedAt: DataTypes.DATE,
   }, {
     sequelize,
     modelName: 'Cars',
