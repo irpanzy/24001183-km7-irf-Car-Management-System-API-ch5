@@ -1,235 +1,49 @@
-const { User, Auth } = require("../models");
-const { Op } = require("sequelize");
+const jwt = require("jsonwebtoken");
 const bcrypt = require("bcrypt");
+const { Auth, User } = require("../models");
 
-const getCurrentUser = async (req, res) => {
+const register = async (req, res) => {
   try {
-    const userId = req.user.id;
-    const user = await User.findByPk(userId);
+    const { name, age, address, email, password } = req.body;
 
-    if (!user) {
-      return res.status(404).json({
-        status: "Failed",
-        message: "User not found",
-      });
-    }
-
-    res.status(200).json({
-      status: "Success",
-      data: user,
-    });
-  } catch (error) {
-    res.status(500).json({
-      status: "Error",
-      message: error.message,
-    });
-  }
-};
-const findUserById = async (req, res) => {
-  try {
-    const user = await User.findOne({
-      where: {
-        id: req.params.id,
-      },
-    });
-
-    if (!user) {
-      return res.status(404).json({
-        status: "Failed",
-        message: "User not found",
-        isSuccess: false,
-      });
-    }
-
-    res.status(200).json({
-      status: "Success",
-      data: {
-        user,
-      },
-    });
-  } catch (error) {
-    res.status(500).json({
-      status: "Failed",
-      message: error.message,
-      isSuccess: false,
-    });
-  }
-};
-const findUsers = async (req, res) => {
-  try {
-    const {
-      name,
-      age,
-      address,
-      role,
-      page = 1,
-      limit = 10,
-      sortBy = "name",
-      order = "ASC",
-    } = req.query;
-
-    const userCondition = {};
-    if (name) userCondition.name = { [Op.iLike]: `%${name}%` };
-    if (age) userCondition.age = age;
-    if (address) userCondition.address = { [Op.iLike]: `%${address}%` };
-    if (role) userCondition.role = role;
-
-    const offset = (page - 1) * limit;
-
-    const users = await User.findAndCountAll({
-      where: userCondition,
-      limit: parseInt(limit),
-      offset: parseInt(offset),
-      attributes: ["id", "name", "age", "address", "role"],
-    });
-
-    const totalData = users.count;
-    const totalPages = Math.ceil(totalData / limit);
-
-    res.status(200).json({
-      status: "Success",
-      message: "Users fetched successfully",
-      isSuccess: true,
-      data: {
-        totalData,
-        totalPages,
-        currentPage: parseInt(page),
-        users: users.rows,
-      },
-    });
-  } catch (error) {
-    console.log(error.name);
-
-    if (error.name === "SequelizeValidationError") {
-      const errorMessage = error.errors.map((err) => err.message);
+    if (!password || password.length < 6 || password.length > 100) {
       return res.status(400).json({
         status: "Failed",
-        message: errorMessage[0],
-        isSuccess: false,
+        message: "Password must be between 6 and 100 characters",
         data: null,
       });
     }
 
-    res.status(500).json({
-      status: "Failed",
-      message: error.message,
-      isSuccess: false,
-      data: null,
-    });
-  }
-};
-
-const updateUser = async (req, res) => {
-  const { name, age, role, address } = req.body;
-  try {
-    const [updated] = await User.update(
-      { name, age, role, address },
-      {
-        where: {
-          id: req.params.id,
-        },
-      }
-    );
-
-    if (!updated) {
-      return res.status(404).json({
+    const existingUser = await Auth.findOne({ where: { email } });
+    if (existingUser) {
+      return res.status(400).json({
         status: "Failed",
-        message: "User not found",
-        isSuccess: false,
+        message: "Email already exists",
+        data: null,
       });
     }
 
-    res.status(200).json({
-      status: "Success",
-      message: "User updated successfully",
-      isSuccess: true,
-    });
-  } catch (error) {
-    res.status(500).json({
-      status: "Failed",
-      message: error.message,
-      isSuccess: false,
-    });
-  }
-};
-
-const deleteUser = async (req, res) => {
-  try {
-    const user = await User.findOne({
-      where: {
-        id: req.params.id,
-      },
-    });
-
-    if (!user) {
-      return res.status(404).json({
-        status: "Failed",
-        message: "User not found",
-        isSuccess: false,
-      });
-    }
-
-    await User.destroy({
-      where: {
-        id: req.params.id,
-      },
-    });
-
-    res.status(200).json({
-      status: "Success",
-      message: "User deleted successfully",
-      isSuccess: true,
-    });
-  } catch (error) {
-    res.status(500).json({
-      status: "Failed",
-      message: error.message,
-      isSuccess: false,
-    });
-  }
-};
-
-const createAdmin = async (req, res) => {
-  try {
-    const { name, age, address, email, password } = req.body;
-
-    if (req.user.role !== "superadmin") {
-      return res.status(403).json({
-        status: "Failed",
-        message: "Forbidden: Only superadmin can create admin.",
-      });
-    }
-
-    const hashedPassword = bcrypt.hashSync(password, 10);
-
-    const user = await User.create({
-      name,
-      age,
-      address,
-      role: "admin",
-    });
-
-    const auth = await Auth.create({
+    const hashedPassword = await bcrypt.hash(password, 10);
+    const newUser = await User.create({ name, age, address });
+    const newAuth = await Auth.create({
       email,
       password: hashedPassword,
-      userId: user.id,
+      userId: newUser.id,
     });
 
     res.status(201).json({
       status: "Success",
-      message: "Admin created successfully",
+      message: "User registered successfully",
       data: {
-        id: user.id,
-        name: user.name,
-        email: auth.email,
-        role: user.role,
+        userName: newUser.name,
+        email: newAuth.email,
       },
     });
   } catch (error) {
-    console.error("Error creating admin:", error);
     res.status(500).json({
       status: "Failed",
       message: error.message,
+      data: null,
     });
   }
 };
@@ -238,71 +52,56 @@ const login = async (req, res) => {
   try {
     const { email, password } = req.body;
 
-    const auth = await Auth.findOne({ where: { email } });
-    if (!auth) {
-      return res.status(401).json({
+    const data = await Auth.findOne({
+      include: [{ model: User, as: "user" }],
+      where: { email },
+    });
+
+    if (!data) {
+      return res.status(404).json({
         status: "Failed",
-        message: "Invalid email or password",
+        message: "User does not exist",
+        success: false,
+        data: null,
       });
     }
 
-    const isValidPassword = bcrypt.compareSync(password, auth.password);
-    if (!isValidPassword) {
+    const passwordMatch = await bcrypt.compare(password, data.password);
+    if (!passwordMatch) {
       return res.status(401).json({
         status: "Failed",
-        message: "Invalid email or password",
+        message: "Wrong Password",
+        success: false,
       });
     }
+
+    const token = jwt.sign(
+      {
+        id: data.id,
+        userName: data.user.name,
+        email: data.email,
+        userId: data.user.id,
+      },
+      process.env.JWT_SECRET,
+      { expiresIn: process.env.JWT_EXPIRED || "1h" }
+    );
 
     res.status(200).json({
       status: "Success",
-      message: "Login successful",
-      data: { email: auth.email }, 
+      message: "Success login",
+      success: true,
+      data: { userName: data.user.name, token },
     });
   } catch (error) {
     res.status(500).json({
-      status: "Error",
+      status: "Failed",
       message: error.message,
-    });
-  }
-};
-
-const register = async (req, res) => {
-  try {
-    const { email, password, name } = req.body;
-
-    const existingUser = await Auth.findOne({ where: { email } });
-    if (existingUser) {
-      return res.status(409).json({
-        status: "Failed",
-        message: "Email already exists",
-      });
-    }
-
-    const hashedPassword = bcrypt.hashSync(password, 10);
-    const user = await User.create({ name }); 
-    const auth = await Auth.create({ email, password: hashedPassword, userId: user.id });
-
-    res.status(201).json({
-      status: "Success",
-      message: "User registered successfully",
-      data: { id: user.id, email: auth.email },
-    });
-  } catch (error) {
-    res.status(500).json({
-      status: "Error",
-      message: error.message,
+      data: null,
     });
   }
 };
 
 module.exports = {
-  findUsers,
-  findUserById,
-  updateUser,
-  deleteUser,
-  createAdmin,
-  getCurrentUser,
-  login, 
-  register, 
+  register,
+  login,
 };
