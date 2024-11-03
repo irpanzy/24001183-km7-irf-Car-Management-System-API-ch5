@@ -1,11 +1,11 @@
-const { Users, Auths } = require("../models");
+const { User, Auth } = require("../models");
 const { Op } = require("sequelize");
 const bcrypt = require("bcrypt");
 
 const getCurrentUser = async (req, res) => {
   try {
     const userId = req.user.id;
-    const user = await Users.findByPk(userId);
+    const user = await User.findByPk(userId);
 
     if (!user) {
       return res.status(404).json({
@@ -27,7 +27,7 @@ const getCurrentUser = async (req, res) => {
 };
 const findUserById = async (req, res) => {
   try {
-    const user = await Users.findOne({
+    const user = await User.findOne({
       where: {
         id: req.params.id,
       },
@@ -76,7 +76,7 @@ const findUsers = async (req, res) => {
 
     const offset = (page - 1) * limit;
 
-    const users = await Users.findAndCountAll({
+    const users = await User.findAndCountAll({
       where: userCondition,
       limit: parseInt(limit),
       offset: parseInt(offset),
@@ -122,7 +122,7 @@ const findUsers = async (req, res) => {
 const updateUser = async (req, res) => {
   const { name, age, role, address } = req.body;
   try {
-    const [updated] = await Users.update(
+    const [updated] = await User.update(
       { name, age, role, address },
       {
         where: {
@@ -155,10 +155,10 @@ const updateUser = async (req, res) => {
 
 const deleteUser = async (req, res) => {
   try {
+    const userId = req.params.id;
+
     const user = await User.findOne({
-      where: {
-        id: req.params.id,
-      },
+      where: { id: userId },
     });
 
     if (!user) {
@@ -169,10 +169,12 @@ const deleteUser = async (req, res) => {
       });
     }
 
+    await Auth.destroy({
+      where: { userId: userId },
+    });
+
     await User.destroy({
-      where: {
-        id: req.params.id,
-      },
+      where: { id: userId },
     });
 
     res.status(200).json({
@@ -181,6 +183,7 @@ const deleteUser = async (req, res) => {
       isSuccess: true,
     });
   } catch (error) {
+    console.error("Error deleting user:", error);
     res.status(500).json({
       status: "Failed",
       message: error.message,
@@ -193,10 +196,20 @@ const createAdmin = async (req, res) => {
   try {
     const { name, age, address, email, password } = req.body;
 
-    if (req.user.role !== "superadmin") {
-      return res.status(403).json({
+    const existingAuth = await Auth.findOne({ where: { email } });
+    if (existingAuth) {
+      return res.status(400).json({
         status: "Failed",
-        message: "Forbidden: Only superadmin can create admin.",
+        message: "Email already exists",
+        data: null,
+      });
+    }
+
+    if (!password || password.length < 6 || password.length > 100) {
+      return res.status(400).json({
+        status: "Failed",
+        message: "Password must be between 6 and 100 characters long",
+        data: null,
       });
     }
 
